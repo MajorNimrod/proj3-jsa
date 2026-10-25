@@ -1,0 +1,11 @@
+# Ignore local creds and secret saucy files
+credentials.ini
+*/credentials.ini
+
+# Ignore OS and sys files
+.DS_Store
+Thumbs.db
+
+# python stuff
+__pycache__/
+*.py[cod]
