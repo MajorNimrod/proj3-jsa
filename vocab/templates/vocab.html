@@ -80,34 +80,68 @@
 <br />
 <div class="row">
   <div class="col-xs-6 text-center">
-  <form id="entry" method="POST" action="/_check">
+<form id="entry">
     <label for="attempt">Word:</label>
     <input id="attempt" name="attempt" type="text" width="15"
       autocomplete="off"  autofocus />
-    <input type="submit" name="try" />
   </form>
 </div></div>
 
 <br />
 
-{% if session.matches|length is not equalto 0  %}
+<!-- JavaScript fills in the found words and messages below -->
 <h2>You found </h2>
 <p id="results">
   {% for match in session.matches %}
   {{ match }} 
   {% endfor %}
 </p>
-{% endif %}
 
+<p id="message" class="message"></p>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <!-- Mismatch, already found, etc. "flashed" from Python -->
-    {% for message in messages %}
-      <p class="message">{{ message }}</p>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+<script>
+// Suppress normal form submission (pressing Enter would reload the page).
+// Enter is our "I'm done typing, tell me what's wrong" action, so we
+// ask the server again and this time show its message.
+$("#entry").submit( function(event) {
+  event.preventDefault();
+  checkWord(true);
+});
+
+// On each keystroke, ask the server about the current contents of the box.
+// 'keyup' is used because the input's value is already updated by then.
+$("#attempt").keyup( function(event) {
+  var letter = String.fromCharCode(event.which);
+  // keyup also fires for Shift, Backspace, Enter, etc.; only react to letters
+  if (! "ABCDEFGHIJKLMNOPQRSTUVWXYZ".includes(letter)) { return; }
+  checkWord(false);
+});
+
+// Send the current text to the server and update the page from the reply.
+// showMessage: whether to display the server's complaint (see above).
+function checkWord(showMessage) {
+  var txt = $("#attempt").val();
+  $.getJSON("/_check", { attempt: txt }, function(data) {
+    var result = data.result;
+
+    if (result.new_match) {
+      // Redraw the list of found words and clear the box for the next one
+      $("#results").text(result.matches.join(" "));
+      $("#attempt").val("");
+      $("#message").text("");
+    } else if (showMessage) {
+      // .text() (not .html()) because the message contains what the user typed
+      $("#message").text(result.message);
+    } else {
+      $("#message").text("");
+    }
+
+    if (result.done) {
+      window.location.href = "{{ url_for('success') }}";
+    }
+  });
+}
+</script>
 
 
 
